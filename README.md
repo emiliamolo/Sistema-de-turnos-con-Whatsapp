@@ -2,6 +2,17 @@
 
 Sistema web para gestionar turnos, clientes y profesionales, con reserva de turnos automatizada vía WhatsApp usando inteligencia artificial.
 
+## Características
+
+- **Reserva de turnos vía WhatsApp** — Los clientes chatean con un bot inteligente que guía la reserva paso a paso (servicio, profesional, fecha y horario) usando IA.
+- **Clasificación con IA (Gemini 2.5 Flash)** — Entiende lenguaje coloquial, errores de tipeo y variaciones regionales para interpretar la intención del cliente.
+- **Panel de administración web** — CRUD completo de turnos, clientes, profesionales, servicios, salas y pagos con calendario interactivo (FullCalendar).
+- **Panel de profesionales** — Cada profesional accede a sus turnos, puede cancelarlos y reorganizarlos con restricciones.
+- **Recordatorios automáticos** — El worker envía templates de WhatsApp a los clientes antes de su turno.
+- **Anti-doble reserva** — Tres capas de concurrencia (`SELECT FOR UPDATE`, `IntegrityError`, exclusion constraints) que impiden que dos clientes reserven el mismo horario.
+- **Roles y autenticación JWT** — Superadmin, admin y profesional con accesos diferenciados.
+- **Infraestructura Dockerizada** — API, worker, PostgreSQL, Redis y pgAdmin en un solo `docker compose up`.
+
 ## Stack Tecnológico
 
 | Componente | Tecnología |
