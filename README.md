@@ -29,6 +29,22 @@ Sistema web para gestionar turnos, clientes y profesionales, con reserva de turn
 | WhatsApp | Meta Graph API v17.0 |
 | Infra | Docker + Docker Compose |
 
+## Demo
+
+![Screenshot](img/Screenshot%20from%202026-06-05%2016-22-33.png)
+
+![Screenshot](img/Screenshot%20from%202026-06-05%2016-22-17.png)
+
+![Screenshot](img/Screenshot%20from%202026-06-05%2016-21-53.png)
+
+Reserva de turnos e interpretación de mensajes con IA:
+
+![Screenshot](img/Screenshot%20from%202026-06-05%2016-23-34.png)
+
+Recordatorio automático de turno:
+
+![Screenshot](img/Screenshot%20from%202026-06-05%2016-23-05.png)
+
 ## Estructura del Proyecto
 
 ```
