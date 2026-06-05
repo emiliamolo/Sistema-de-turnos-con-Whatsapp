@@ -75,10 +75,19 @@ Esto levanta 5 contenedores:
 
 ### 3. Acceder
 
-- **Panel de administración**: http://localhost:8000/admin
-- **Panel de profesionales**: http://localhost:8000/professional
-- **pgAdmin** (explorar la DB): http://localhost:5050
-- **Webhook de WhatsApp**: http://localhost:8000/whatsapp/webhook (para configurar en Meta)
+Todas las secciones requieren login menos el webhook. El flujo normal es:
+
+1. Entrar a `http://localhost:8000/auth/login`
+2. Loguearse con las credenciales del superadmin definidas en `.env` (`SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`)
+3. De ahí redirige al panel correspondiente
+
+| Sección | URL | Requiere login |
+|---|---|---|
+| Login | `/auth/login` | No |
+| Panel de administración | `/admin/dashboard` | Sí |
+| Panel de profesionales | `/professional/login` | No (es la página de login del profesional) |
+| pgAdmin | `:5050` | Sí (`admin@admin.com` / `admin`) |
+| Webhook de WhatsApp | `/whatsapp/webhook` | No (token propio de Meta) |
 
 ---
 
@@ -137,12 +146,15 @@ La autenticación se hace con `Authorization: Bearer {WHATSAPP_ACCESS_TOKEN}`.
 
 ### Configuración en Meta for Developers
 
-1. Crear una app de tipo Business en [developers.facebook.com](https://developers.facebook.com)
-2. Agregar el producto WhatsApp
-3. Configurar el webhook apuntando a `https://tu-dominio.com/whatsapp/webhook`
-4. Usar el `WHATSAPP_VERIFY_TOKEN` definido en `.env`
-5. Suscribirse a los eventos `messages`
-6. Generar un token de acceso permanente en la configuración del número de teléfono
+1. Crear una app de tipo **Business** en [developers.facebook.com](https://developers.facebook.com)
+2. Agregar el producto **WhatsApp**
+3. Ir a **Configuración > Webhook** y completar:
+   - **URL de callback**: `https://tu-dominio.com/whatsapp/webhook` (en desarrollo local necesitás exponer el puerto con un tunnel como ngrok: `ngrok http 8000`)
+   - **Token de verificación**: el valor que pusiste en `WHATSAPP_VERIFY_TOKEN` en tu `.env`
+4. En **Campos de suscripción**, seleccionar `messages`
+5. Verificar y guardar
+6. Ir a **Configuración > Número de teléfono** y generar un token de acceso permanente
+7. Copiar el **Phone number ID**, **Business Account ID** y el **Access Token** a tu `.env`
 
 ### Template de Recordatorios
 
@@ -182,16 +194,29 @@ El primer inicio crea automáticamente un superadmin con las credenciales defini
 ## Endpoints Principales
 
 ### Web
-- `GET /admin` — Panel de administración
-- `GET /professional` — Panel de profesionales
-- `GET /auth/login` — Login
-- `GET /whatsapp/webhook` — Verificación del webhook (Meta)
+| Ruta | Descripción |
+|---|---|
+| `/auth/login` | Login de administradores |
+| `/admin/dashboard` | Panel de administración |
+| `/admin/calendar` | Calendario de turnos |
+| `/admin/bookings` | Gestión de turnos |
+| `/admin/services` | Gestión de servicios |
+| `/admin/rooms` | Gestión de salas |
+| `/admin/staff` | Gestión de profesionales |
+| `/admin/customers` | Gestión de clientes |
+| `/admin/payments` | Gestión de pagos |
+| `/professional/login` | Login de profesionales |
+| `/professional/dashboard` | Panel de profesionales |
+| `/professional/calendar` | Calendario del profesional |
+| `/whatsapp/webhook` | Webhook de recepción de mensajes (Meta) |
 
 ### API REST
-- `GET/POST /admin/api/bookings` — CRUD de turnos
-- `GET/PUT /admin/api/calendar/events` — Eventos del calendario
-- `GET /admin/api/available-slots` — Slots disponibles para una fecha
-- `POST /whatsapp/webhook` — Recepción de mensajes de WhatsApp
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET/POST` | `/admin/bookings` | CRUD de turnos |
+| `GET/PUT` | `/admin/api/calendar/events` | Eventos del calendario |
+| `GET` | `/admin/available-slots` | Slots disponibles para una fecha |
+| `POST` | `/whatsapp/webhook` | Recepción de mensajes WhatsApp
 
 ---
 
