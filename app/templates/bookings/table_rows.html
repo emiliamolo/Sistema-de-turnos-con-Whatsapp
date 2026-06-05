@@ -1,0 +1,78 @@
+{% for booking in bookings %}
+{% set ns = namespace(is_paid=false) %}
+{% for payment in booking.payments %}
+    {% if payment.status in ('paid', 'approved') %}
+        {% set ns.is_paid = true %}
+    {% endif %}
+{% endfor %}
+{% set is_past = booking.start_time < now() %}
+<tr>
+    <td class="px-6 py-4">
+        <div class="font-semibold text-slate-800">{{ booking.customer.full_name }}</div>
+        <div class="text-xs text-slate-500">{{ booking.customer.phone_number }}</div>
+    </td>
+    <td class="px-6 py-4 text-slate-600 text-sm">
+        {{ booking.service.name }}
+    </td>
+    <td class="px-6 py-4 text-slate-600 text-sm">
+        {{ booking.room.name }}
+    </td>
+    <td class="px-6 py-4 text-slate-600 text-sm font-medium">
+        {{ booking.staff_member.name if booking.staff_member else 'Sin asignar' }}
+    </td>
+    <td class="px-6 py-4">
+        <div class="text-sm font-medium text-slate-800">{{ booking.start_time.strftime('%d/%m/%Y') }}</div>
+        <div class="text-xs text-slate-500">{{ booking.start_time.strftime('%H:%M') }} - {{ booking.end_time.strftime('%H:%M') }}</div>
+    </td>
+    <td class="px-6 py-4">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+            {% if booking.status == 'confirmed' %}bg-emerald-100 text-emerald-800
+            {% elif booking.status == 'pending' %}bg-amber-100 text-amber-800
+            {% else %}bg-slate-100 text-slate-800{% endif %}">
+            {{ booking.status|capitalize }}
+        </span>
+    </td>
+    <td class="px-6 py-4">
+        {% if ns.is_paid %}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+            Pagado
+        </span>
+        {% else %}
+        <button onclick="openPaymentModal('{{ booking.id }}', '{{ booking.service.price }}', '{{ booking.customer.full_name }}', '{{ booking.customer_id }}')" 
+                class="inline-flex items-center px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600 transition-colors shadow-sm">
+            Cobrar
+        </button>
+        <button hx-get="/admin/payments/link/{{ booking.id }}" hx-target="body" hx-swap="beforeend"
+                class="inline-flex items-center px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-lg hover:bg-blue-600 transition-colors shadow-sm ml-1">
+            Link
+        </button>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 text-right">
+        {% if not ns.is_paid and not is_past %}
+        <button hx-get="/admin/bookings/{{ booking.id }}/edit" 
+                hx-target="body" 
+                hx-swap="beforeend"
+                class="text-slate-400 hover:text-primary-900 transition-colors p-2 hover:bg-primary-50 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+        </button>
+        {% endif %}
+        {% if not is_past %}
+        <button hx-delete="/admin/bookings/{{ booking.id }}" 
+                hx-target="#bookings-table-body" 
+                hx-swap="innerHTML"
+                hx-confirm="¿Estás seguro de que quieres borrar este turno?"
+                class="text-slate-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        </button>
+        {% endif %}
+    </td>
+</tr>
+{% else %}
+<tr>
+    <td colspan="8" class="px-6 py-12 text-center text-slate-400 italic">
+        No hay turnos agendados.
+    </td>
+</tr>
+{% endfor %}

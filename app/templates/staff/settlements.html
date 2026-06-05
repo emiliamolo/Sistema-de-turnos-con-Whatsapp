@@ -1,0 +1,99 @@
+<header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
+    <div class="flex items-center">
+        <button hx-get="/admin/staff" hx-target="#main-view-content" hx-push-url="true" class="mr-4 text-slate-400 hover:text-slate-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        </button>
+        <div>
+            <h1 class="text-xl font-extrabold text-slate-800">Liquidaciones</h1>
+            <p class="text-sm font-medium text-slate-500">{{ staff_member.name }}</p>
+        </div>
+    </div>
+    <button onclick="document.getElementById('settlement-generate-modal').classList.remove('hidden')"
+            class="bg-primary-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-primary-800 shadow-lg">
+        Nueva Liquidación
+    </button>
+</header>
+
+<section class="p-4 md:p-8">
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 mb-6 flex items-center justify-between">
+        <div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Liquidado</p>
+            <h3 class="text-2xl font-black text-emerald-600">${{ "{:,.2f}".format(total_paid_commission) }}</h3>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 border-b border-slate-100">
+                <tr class="text-slate-500 text-xs font-bold uppercase tracking-wider">
+                    <th class="px-6 py-4">Período</th>
+                    <th class="px-6 py-4">Turnos</th>
+                    <th class="px-6 py-4">Monto Total</th>
+                    <th class="px-6 py-4">Comisión</th>
+                    <th class="px-6 py-4">Estado</th>
+                    <th class="px-6 py-4 text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for s in settlements %}
+                <tr>
+                    <td class="px-6 py-4 text-sm font-medium text-slate-700">
+                        {{ s.period_start.strftime('%d/%m/%Y') }} - {{ s.period_end.strftime('%d/%m/%Y') }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600">{{ s.total_services }}</td>
+                    <td class="px-6 py-4 text-sm font-bold text-slate-800">${{ "{:,.2f}".format(s.total_amount) }}</td>
+                    <td class="px-6 py-4 text-sm font-bold text-primary-900">${{ "{:,.2f}".format(s.total_commission) }}</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {% if s.status == 'paid' %}bg-emerald-100 text-emerald-800{% else %}bg-amber-100 text-amber-800{% endif %}">
+                            {{ 'Pagado' if s.status == 'paid' else 'Pendiente' }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button hx-get="/staff/{{ staff_member.id }}/settlements/{{ s.id }}"
+                                hx-target="body" hx-swap="beforeend"
+                                class="text-slate-400 hover:text-primary-900 p-2 hover:bg-primary-50 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        </button>
+                        {% if s.status != 'paid' %}
+                        <button hx-post="/staff/{{ staff_member.id }}/settlements/{{ s.id }}/mark-paid"
+                                hx-swap="none"
+                                class="text-slate-400 hover:text-emerald-600 p-2 hover:bg-emerald-50 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center text-slate-400 italic">No hay liquidaciones para este profesional.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- Generate Settlement Modal -->
+<div id="settlement-generate-modal" class="hidden fixed inset-0 bg-primary-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+    <div class="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl">
+        <h3 class="text-xl font-black text-primary-900 mb-2">Nueva Liquidación</h3>
+        <p class="text-sm text-slate-500 mb-6">Generar liquidación para {{ staff_member.name }}</p>
+        <form hx-post="/staff/{{ staff_member.id }}/settlements/generate" hx-target="body" hx-swap="innerHTML" hx-on::after-request="document.getElementById('settlement-generate-modal').classList.add('hidden')">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Desde</label>
+                    <input type="date" name="period_start" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Hasta</label>
+                    <input type="date" name="period_end" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                </div>
+            </div>
+            <div class="mt-6 flex space-x-3">
+                <button type="button" onclick="document.getElementById('settlement-generate-modal').classList.add('hidden')" class="flex-1 px-4 py-4 border border-slate-200 rounded-2xl font-bold text-slate-500">Cancelar</button>
+                <button type="submit" class="flex-1 px-4 py-4 bg-primary-900 text-white rounded-2xl font-bold hover:bg-primary-800 shadow-lg">Generar</button>
+            </div>
+        </form>
+    </div>
+</div>

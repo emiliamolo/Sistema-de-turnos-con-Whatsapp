@@ -1,0 +1,24 @@
+<div id="payment-link-modal" class="fixed inset-0 bg-primary-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+    <div class="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl text-center">
+        <h3 class="text-xl font-black text-primary-900 mb-2">Link de Pago</h3>
+        <p class="text-sm text-slate-600 mb-4">{{ booking.service.name }} — ${{ "{:,.2f}".format(booking.service.price) }}</p>
+
+        {% if already_paid %}
+        <div class="bg-emerald-50 rounded-2xl p-6 mb-4">
+            <div class="text-4xl mb-2">&#10003;</div>
+            <p class="text-emerald-700 font-bold">Ya está pagado</p>
+            <p class="text-xs text-emerald-600 mt-1">${{ "{:,.2f}".format(existing_payment.amount) }} — {{ existing_payment.created_at.strftime('%d/%m/%Y') }}</p>
+        </div>
+        {% else %}
+        <div class="bg-slate-50 rounded-2xl p-6 mb-4">
+            <p class="text-sm font-medium text-slate-600 mb-3">Registrá el pago manualmente:</p>
+            <p class="text-xs text-slate-500">Usá la sección de Pagos para registrar un nuevo pago para este turno.</p>
+        </div>
+        {% endif %}
+
+        <button onclick="document.getElementById('payment-link-modal').remove()"
+                class="w-full py-3 bg-primary-900 text-white rounded-xl font-bold hover:bg-primary-800">
+            Cerrar
+        </button>
+    </div>
+</div>

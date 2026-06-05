@@ -1,0 +1,43 @@
+<div id="staff-edit-modal-backdrop" class="fixed inset-0 bg-primary-900/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+    <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl transform transition-all">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-black text-primary-900">Editar Profesional</h3>
+            <button onclick="document.getElementById('edit-modal-container').innerHTML = ''" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form hx-post="/admin/staff/{{ staff_member.id }}" hx-target="#staff-table-body" hx-on::after-request="document.getElementById('edit-modal-container').innerHTML = ''">
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Nombre Completo</label>
+                    <input type="text" name="name" value="{{ staff_member.name }}" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Especialidad</label>
+                    <input type="text" name="specialty" value="{{ staff_member.specialty or '' }}" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                </div>
+                <div class="border-t border-slate-100 pt-4">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Acceso al Portal Profesional</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Email</label>
+                            <input type="email" name="email" value="{{ staff_member.user.email if staff_member.user else '' }}" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium" placeholder="profesional@email.com">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Nueva Contraseña</label>
+                            <input type="password" name="password" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium" placeholder="Dejar vacío para mantener actual">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center mt-4">
+                    <input type="checkbox" name="active" id="staff-active" {% if staff_member.active %}checked{% endif %} class="w-5 h-5 text-primary-600 bg-slate-100 border-slate-300 rounded focus:ring-primary-500 focus:ring-2">
+                    <label for="staff-active" class="ml-2 text-sm font-bold text-slate-700">Profesional Activo</label>
+                </div>
+            </div>
+            <div class="mt-8 flex space-x-3">
+                <button type="button" onclick="document.getElementById('edit-modal-container').innerHTML = ''" class="flex-1 px-4 py-4 border border-slate-200 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Cancelar</button>
+                <button type="submit" class="flex-1 px-4 py-4 bg-primary-900 text-white rounded-2xl font-bold hover:bg-primary-800 shadow-lg shadow-primary-900/20 transition-all">Actualizar</button>
+            </div>
+        </form>
+    </div>
+</div>

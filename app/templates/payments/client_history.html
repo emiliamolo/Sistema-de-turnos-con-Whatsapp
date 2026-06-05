@@ -1,0 +1,80 @@
+<header class="bg-white border-b border-slate-200 px-8 py-4">
+    <div class="flex items-center">
+        <button hx-get="/admin/customers" hx-target="#main-view-content" hx-push-url="true" class="mr-4 text-slate-400 hover:text-slate-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        </button>
+        <div>
+            <h1 class="text-xl font-extrabold text-slate-800">Historial de Pagos</h1>
+            <p class="text-sm font-medium text-slate-500">{{ customer.full_name or customer.phone_number }}</p>
+        </div>
+    </div>
+</header>
+
+<section class="p-4 md:p-8 space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Servicios</p>
+            <h3 class="text-2xl font-black text-slate-800">${{ "{:,.2f}".format(total_service_amount) }}</h3>
+        </div>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Pagado</p>
+            <h3 class="text-2xl font-black text-emerald-600">${{ "{:,.2f}".format(total_paid) }}</h3>
+        </div>
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Deuda Pendiente</p>
+            <h3 class="text-2xl font-black text-red-500">${{ "{:,.2f}".format(total_pending) }}</h3>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100">
+            <h3 class="text-lg font-bold text-slate-800">Pagos Registrados</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr class="text-slate-500 text-xs font-bold uppercase tracking-wider">
+                        <th class="px-6 py-4">Turno</th>
+                        <th class="px-6 py-4">Monto</th>
+                        <th class="px-6 py-4">Método</th>
+                        <th class="px-6 py-4">Estado</th>
+                        <th class="px-6 py-4">Fecha</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for payment in payments %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 text-sm font-medium text-slate-700">
+                            {% if payment.booking and payment.booking.service %}
+                            {{ payment.booking.service.name }}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm font-bold text-slate-800">${{ "{:,.2f}".format(payment.amount) }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">
+                            {% if payment.payment_method == 'cash' %}Efectivo
+                            {% elif payment.payment_method == 'transfer' %}Transferencia
+                            {% elif payment.payment_method == 'card' %}Tarjeta
+                            {% else %}{{ payment.payment_method }}{% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                {% if payment.status == 'paid' %}bg-emerald-100 text-emerald-800
+                                {% elif payment.status == 'partial' %}bg-amber-100 text-amber-800
+                                {% else %}bg-slate-100 text-slate-800{% endif %}">
+                                {% if payment.status == 'paid' %}Pagado
+                                {% elif payment.status == 'partial' %}Parcial
+                                {% else %}Pendiente{% endif %}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-500">{{ payment.created_at.strftime('%d/%m/%Y') if payment.created_at else '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-400 italic">Sin pagos registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>

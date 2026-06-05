@@ -1,0 +1,38 @@
+{% for customer in customers %}
+<tr class="hover:bg-slate-50 transition-colors group">
+    <td class="px-6 py-4">
+        <div class="flex items-center">
+            <div class="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-900 font-bold mr-3">
+                {{ customer.full_name[:2].upper() if customer.full_name else '??' }}
+            </div>
+            <div>
+                <p class="font-bold text-slate-800">{{ customer.full_name or 'Sin nombre' }}</p>
+            </div>
+        </div>
+    </td>
+    <td class="px-6 py-4">
+        <span class="text-sm font-semibold text-slate-700">{{ customer.phone_number }}</span>
+    </td>
+    <td class="px-6 py-4">
+        <span class="text-sm text-slate-500">{{ customer.email or '-' }}</span>
+    </td>
+    <td class="px-6 py-4">
+        <span class="text-sm text-slate-500">{{ customer.created_at.strftime('%d/%m/%Y') if customer.created_at else '-' }}</span>
+    </td>
+    <td class="px-6 py-4 text-right">
+        <button hx-delete="/admin/customers/{{ customer.id }}"
+                hx-target="#customers-table-body"
+                hx-swap="innerHTML"
+                hx-confirm="¿Estás seguro de eliminar a {{ customer.full_name or 'este cliente' }}?"
+                class="text-slate-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        </button>
+    </td>
+</tr>
+{% else %}
+<tr>
+    <td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">
+        No hay clientes registrados aún.
+    </td>
+</tr>
+{% endfor %}

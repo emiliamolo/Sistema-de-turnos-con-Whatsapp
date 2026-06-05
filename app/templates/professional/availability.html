@@ -1,0 +1,87 @@
+<div class="p-4 md:p-8">
+    <div class="mb-6">
+        <h1 class="text-3xl font-black text-slate-800">Configurar Horarios</h1>
+        <p class="text-slate-500 font-medium mt-1">Definí tus bloques de trabajo por día de la semana</p>
+    </div>
+
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 mb-6">
+        <h2 class="text-lg font-black text-slate-800 mb-6">Horarios Semanales</h2>
+        <form method="POST" action="/professional/availability" class="space-y-4">
+            {% for day_num in range(7) %}
+            {% set day_name = days[day_num] %}
+            {% set day_blocks = availabilities | selectattr('day_of_week', 'equalto', day_num) | list %}
+            <div class="flex flex-col md:flex-row md:items-center gap-4 p-4 bg-slate-50 rounded-2xl">
+                <div class="w-24 md:w-28">
+                    <span class="font-black text-slate-700 text-sm">{{ day_name }}</span>
+                </div>
+                <div class="flex items-center gap-3 flex-1">
+                    <input type="time" name="start_{{ day_num }}"
+                        value="{{ day_blocks[0].start_time.strftime('%H:%M') if day_blocks else '' }}"
+                        class="px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-900 focus:border-transparent outline-none text-sm font-medium w-32">
+                    <span class="text-slate-400 font-bold text-sm">a</span>
+                    <input type="time" name="end_{{ day_num }}"
+                        value="{{ day_blocks[0].end_time.strftime('%H:%M') if day_blocks else '' }}"
+                        class="px-3 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-900 focus:border-transparent outline-none text-sm font-medium w-32">
+                    {% if day_blocks %}
+                    <span class="text-xs text-primary-700 bg-primary-50 px-2 py-1 rounded-lg font-bold">Configurado</span>
+                    {% else %}
+                    <span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-lg font-bold">Sin horario</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <button type="submit"
+                class="w-full py-4 bg-primary-900 text-white rounded-2xl font-black text-lg hover:bg-primary-800 hover:shadow-xl hover:shadow-primary-900/20 transform hover:-translate-y-0.5 transition-all shadow-lg shadow-primary-900/10">
+                Guardar Horarios
+            </button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
+        <h2 class="text-lg font-black text-slate-800 mb-4">Días No Laborables</h2>
+        <p class="text-slate-500 text-sm font-medium mb-6">Registrá vacaciones, feriados o días que no trabajás</p>
+
+        <form method="POST" action="/professional/exceptions" class="flex flex-col md:flex-row gap-3 mb-6">
+            <input type="date" name="exception_date" required
+                class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-900 focus:border-transparent outline-none text-sm font-medium flex-1">
+            <input type="text" name="reason" placeholder="Motivo (ej: Vacaciones)"
+                class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-900 focus:border-transparent outline-none text-sm font-medium flex-1">
+            <button type="submit"
+                class="px-6 py-3 bg-primary-900 text-white rounded-xl font-bold text-sm hover:bg-primary-800 shadow-lg shadow-primary-900/10 transition-all whitespace-nowrap">
+                Agregar
+            </button>
+        </form>
+
+        {% if exceptions %}
+        <div class="space-y-2">
+            {% for exc in exceptions %}
+            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-bold text-slate-700 text-sm">{{ exc.exception_date.strftime('%d/%m/%Y') }}</p>
+                        {% if exc.reason %}
+                        <p class="text-xs text-slate-500">{{ exc.reason }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <form method="POST" action="/professional/exceptions/{{ exc.id }}" style="display:inline">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button onclick="event.preventDefault(); fetch('/professional/exceptions/{{ exc.id }}', {method: 'DELETE'}).then(function(r){ if(r.ok) window.location.reload(); })"
+                        class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all font-bold text-xs">
+                        Eliminar
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-slate-400 text-sm text-center py-8">No hay excepciones registradas.</p>
+        {% endif %}
+    </div>
+</div>

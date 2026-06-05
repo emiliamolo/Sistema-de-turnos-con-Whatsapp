@@ -1,0 +1,37 @@
+<div class="p-4 md:p-8">
+    <div class="mb-6">
+        <h1 class="text-3xl font-black text-slate-800">Mis Servicios</h1>
+        <p class="text-slate-500 font-medium mt-1">Seleccioná los servicios del negocio que ofrecés</p>
+    </div>
+
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
+        {% if services %}
+        <div class="space-y-3">
+            {% for service in services %}
+            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all">
+                <div>
+                    <p class="font-black text-slate-800">{{ service.name }}</p>
+                    <div class="flex items-center gap-3 mt-1">
+                        <span class="text-xs font-bold text-slate-500">{{ service.duration_minutes }} min</span>
+                        {% if service.price %}
+                        <span class="text-xs font-bold text-primary-700">${{ "%.2f"|format(service.price) }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <button hx-post="/professional/services/{{ service.id }}/toggle"
+                    hx-swap="outerHTML"
+                    hx-target="closest .space-y-3"
+                    class="relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-900 focus:ring-offset-2
+                    {% if service.id in my_service_ids %}bg-primary-900{% else %}bg-slate-300{% endif %}">
+                    <span class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform
+                    {% if service.id in my_service_ids %}translate-x-6{% else %}translate-x-1{% endif %}">
+                    </span>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-slate-400 text-center py-12">No hay servicios configurados en el negocio. Contactá al administrador.</p>
+        {% endif %}
+    </div>
+</div>

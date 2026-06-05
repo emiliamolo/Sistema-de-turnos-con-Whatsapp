@@ -1,0 +1,252 @@
+<div class="p-4 md:p-8">
+    <div class="mb-6">
+        <h1 class="text-3xl font-black text-slate-800">Mis Turnos</h1>
+        <p class="text-slate-500 font-medium mt-1">Gestioná tu agenda visualmente</p>
+    </div>
+
+    <div class="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-slate-100">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 space-y-3 md:space-y-0">
+            <div class="flex bg-slate-100 p-0.5 rounded-xl" id="calendar-view-buttons">
+                <button id="btn-month" onclick="changeView('dayGridMonth', this)"
+                    class="view-btn px-3 py-1.5 hover:bg-white hover:shadow-sm rounded-lg text-xs font-bold transition-all">Mes</button>
+                <button id="btn-week" onclick="changeView('timeGridWeek', this)"
+                    class="view-btn px-3 py-1.5 hover:bg-white hover:shadow-sm rounded-lg text-xs font-bold transition-all">Semana</button>
+                <button id="btn-day" onclick="changeView('timeGridDay', this)"
+                    class="view-btn px-3 py-1.5 hover:bg-white hover:shadow-sm rounded-lg text-xs font-bold transition-all">Día</button>
+            </div>
+        </div>
+
+        <div id="calendar" class="min-h-[450px] w-full"></div>
+    </div>
+</div>
+
+<!-- Calendar Confirm Modal -->
+<div id="calendar-confirm-modal" class="hidden fixed inset-0 bg-primary-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4">
+    <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+        <h3 class="text-2xl font-black text-primary-900 mb-2">Confirmar cambio</h3>
+        <p id="calendar-confirm-title" class="text-slate-600 font-medium mb-4"></p>
+        <div class="bg-slate-50 rounded-2xl p-4 mb-4 space-y-2">
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500">Anterior:</span>
+                <span id="calendar-confirm-old" class="font-bold text-slate-700"></span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500">Nuevo:</span>
+                <span id="calendar-confirm-new" class="font-bold text-primary-900"></span>
+            </div>
+        </div>
+        <div class="flex space-x-3">
+            <button id="calendar-confirm-cancel" class="flex-1 px-4 py-4 border border-slate-200 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Cancelar</button>
+            <button id="calendar-confirm-ok" class="flex-1 px-4 py-4 bg-primary-900 text-white rounded-2xl font-bold hover:bg-primary-800 shadow-lg shadow-primary-900/20 transition-all">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Confirm Modal -->
+<div id="cancel-confirm-modal" class="hidden fixed inset-0 bg-primary-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4">
+    <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+        <h3 class="text-2xl font-black text-red-600 mb-2">Cancelar Turno</h3>
+        <p id="cancel-confirm-title" class="text-slate-600 font-medium mb-2"></p>
+        <p class="text-sm text-slate-400 mb-6">El cliente será notificado automáticamente.</p>
+        <div class="flex space-x-3">
+            <button id="cancel-confirm-no" class="flex-1 px-4 py-4 border border-slate-200 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Volver</button>
+            <button id="cancel-confirm-yes" class="flex-1 px-4 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all">Cancelar Turno</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function changeView(viewName, btn) {
+        if (window.cal) {
+            window.cal.changeView(viewName);
+            document.querySelectorAll('.view-btn').forEach(b => {
+                b.classList.remove('bg-white', 'shadow-sm');
+                b.classList.add('hover:bg-white', 'hover:shadow-sm');
+            });
+            btn.classList.add('bg-white', 'shadow-sm');
+            btn.classList.remove('hover:bg-white', 'hover:shadow-sm');
+        }
+    }
+
+    function formatDate(d) {
+        var dd = String(d.getDate()).padStart(2, '0');
+        var mm = String(d.getMonth() + 1).padStart(2, '0');
+        var hh = String(d.getHours()).padStart(2, '0');
+        var min = String(d.getMinutes()).padStart(2, '0');
+        return dd + '/' + mm + '/' + d.getFullYear() + ' ' + hh + ':' + min;
+    }
+
+    function updateEvent(id, start, end, cb) {
+        fetch('/professional/api/calendar/events/' + id, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ start: start, end: end })
+        })
+        .then(function(res) {
+            if (!res.ok) return res.json().then(function(data) { throw new Error(data.detail || 'Error al actualizar'); });
+            return res.json();
+        })
+        .then(function() { cb(null); })
+        .catch(function(err) { cb(err); });
+    }
+
+    function cancelEvent(id, cb) {
+        fetch('/professional/api/calendar/events/' + id + '/cancel', {
+            method: 'POST'
+        })
+        .then(function(res) {
+            if (!res.ok) return res.json().then(function(data) { throw new Error(data.detail || 'Error al cancelar'); });
+            return res.json();
+        })
+        .then(function() { cb(null); })
+        .catch(function(err) { cb(err); });
+    }
+
+    function showConfirm(opts) {
+        var modal = document.getElementById('calendar-confirm-modal');
+        document.getElementById('calendar-confirm-title').textContent = opts.title;
+        document.getElementById('calendar-confirm-old').textContent = formatDate(opts.oldStart) + ' - ' + formatDate(opts.oldEnd);
+        document.getElementById('calendar-confirm-new').textContent = formatDate(opts.newStart) + ' - ' + formatDate(opts.newEnd);
+        modal.classList.remove('hidden');
+
+        function cleanup() { modal.classList.add('hidden'); document.removeEventListener('keydown', onKey); }
+        function onKey(e) { if (e.key === 'Escape') { cleanup(); opts.onCancel(); } }
+
+        document.getElementById('calendar-confirm-ok').onclick = function() { cleanup(); opts.onConfirm(); };
+        document.getElementById('calendar-confirm-cancel').onclick = function() { cleanup(); opts.onCancel(); };
+        modal.onclick = function(e) { if (e.target === modal) { cleanup(); opts.onCancel(); } };
+        document.addEventListener('keydown', onKey);
+    }
+
+    function showCancelConfirm(opts) {
+        var modal = document.getElementById('cancel-confirm-modal');
+        document.getElementById('cancel-confirm-title').textContent = opts.title;
+        modal.classList.remove('hidden');
+
+        function cleanup() { modal.classList.add('hidden'); document.removeEventListener('keydown', onKey); }
+        function onKey(e) { if (e.key === 'Escape') { cleanup(); opts.onCancel(); } }
+
+        document.getElementById('cancel-confirm-yes').onclick = function() { cleanup(); opts.onConfirm(); };
+        document.getElementById('cancel-confirm-no').onclick = function() { cleanup(); opts.onCancel(); };
+        modal.onclick = function(e) { if (e.target === modal) { cleanup(); opts.onCancel(); } };
+        document.addEventListener('keydown', onKey);
+    }
+
+    function initCalendar() {
+        if (typeof FullCalendar === 'undefined') {
+            setTimeout(initCalendar, 50);
+            return;
+        }
+        var el = document.getElementById('calendar');
+        if (!el) return;
+
+        window.cal = new FullCalendar.Calendar(el, {
+            initialView: 'timeGridWeek',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
+            locale: 'es',
+            firstDay: 1,
+            slotMinTime: '07:00:00',
+            slotMaxTime: '22:00:00',
+            allDaySlot: false,
+            height: 'auto',
+            expandRows: true,
+            editable: true,
+            events: '/professional/api/calendar/events',
+            eventClick: function(info) {
+                if (confirm('¿Cancelar el turno "' + info.event.title + '"? El cliente será notificado.')) {
+                    cancelEvent(info.event.id, function(err) {
+                        if (err) { alert('Error: ' + err.message); }
+                        else {
+                            info.event.setProp('backgroundColor', '#ef4444');
+                            info.event.setProp('title', info.event.title + ' (Cancelado)');
+                            window.cal.refetchEvents();
+                        }
+                    });
+                }
+            },
+            eventDidMount: function(info) {
+                info.el.style.border = 'none';
+                info.el.style.padding = '1px 3px';
+                info.el.style.margin = '0 1px';
+                if (info.event.extendedProps.status === 'cancelled') {
+                    info.el.style.backgroundColor = '#ef4444';
+                    info.el.style.textDecoration = 'line-through';
+                }
+            },
+            eventDrop: function(info) {
+                var event = info.event;
+                showConfirm({
+                    title: event.title,
+                    oldStart: info.oldEvent.start,
+                    oldEnd: info.oldEvent.end,
+                    newStart: event.start,
+                    newEnd: event.end,
+                    onConfirm: function() {
+                        updateEvent(event.id, event.start.toISOString(), event.end.toISOString(), function(err) {
+                            if (err) { alert('No se pudo mover el turno: ' + err.message); info.revert(); }
+                            else window.cal.refetchEvents();
+                        });
+                    },
+                    onCancel: function() { info.revert(); }
+                });
+            },
+            eventResize: function(info) {
+                var event = info.event;
+                showConfirm({
+                    title: event.title,
+                    oldStart: info.oldEvent.start,
+                    oldEnd: info.oldEvent.end,
+                    newStart: event.start,
+                    newEnd: event.end,
+                    onConfirm: function() {
+                        updateEvent(event.id, event.start.toISOString(), event.end.toISOString(), function(err) {
+                            if (err) { alert('No se pudo redimensionar el turno: ' + err.message); info.revert(); }
+                            else window.cal.refetchEvents();
+                        });
+                    },
+                    onCancel: function() { info.revert(); }
+                });
+            },
+        });
+
+        setTimeout(function() {
+            window.cal.render();
+            window.cal.updateSize();
+            var btn = document.getElementById('btn-week');
+            if (btn) {
+                btn.classList.add('bg-white', 'shadow-sm');
+                btn.classList.remove('hover:bg-white', 'hover:shadow-sm');
+            }
+        }, 10);
+    }
+
+    initCalendar();
+</script>
+
+<style>
+    :root { --primary-color: #064e3b; }
+    .fc { font-family: 'Mulish', sans-serif; }
+    .fc .fc-toolbar-title { font-size: 1rem; font-weight: 800; color: #1e293b; }
+    .fc .fc-toolbar { margin-bottom: 0.75rem !important; }
+    .fc .fc-button-primary {
+        background-color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    .fc .fc-button-primary:hover { opacity: 0.9; }
+    .fc-theme-standard td, .fc-theme-standard th { border-color: #f1f5f9; }
+    .fc .fc-timegrid-slot { height: 1.6rem !important; }
+    .fc .fc-timegrid-col-events { margin: 0 !important; }
+    .fc-event {
+        border-radius: 6px !important;
+        box-shadow: 0 2px 4px -1px rgb(0 0 0 / 0.1);
+        padding: 2px 4px !important;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+    .fc-event.fc-v-event { border: none !important; }
+    .fc-v-event .fc-event-main { color: white; }
+</style>

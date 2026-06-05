@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Turnos</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#064e3b', // Deep Dark Green
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Mulish', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Mulish', 'sans-serif'; }
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        /* Fix calendar height */
+        #calendar { min-height: 500px; height: auto; }
+        .fc-view-harness { min-height: 450px; }
+        
+        /* Mobile sidebar transition */
+        #sidebar { transition: transform 0.3s ease-in-out; }
+
+        /* --- Custom Date/Time Picker --- */
+        .picker-popup {
+            position: fixed;
+            z-index: 9999;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .datepicker-popup { width: 288px; padding: 16px; }
+        .timepicker-popup { width: 210px; padding: 0; }
+        .picker-input {
+            cursor: pointer;
+            caret-color: transparent;
+        }
+        .tp-scroll::-webkit-scrollbar { width: 4px; }
+        .tp-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .tp-hour-item, .tp-min-item {
+            transition: background-color 0.15s;
+        }
+        .tp-hour-item:hover, .tp-min-item:hover {
+            background-color: #f1f5f9;
+        }
+        .tp-selected {
+            background-color: #064e3b !important;
+            color: white !important;
+        }
+        .dp-day {
+            transition: background-color 0.15s, color 0.15s;
+        }
+        .dp-day:hover:not(.dp-selected):not(.dp-outside) {
+            background-color: #f1f5f9;
+        }
+        .dp-selected {
+            background-color: #064e3b !important;
+            color: white !important;
+        }
+        .dp-today {
+            background-color: #f0fdf4;
+            color: #064e3b;
+        }
+        .dp-nav-btn {
+            transition: background-color 0.15s;
+        }
+        .dp-nav-btn:hover { background-color: #f1f5f9; }
+        .picker-error { min-height: 20px; }
+
+        /* --- Toast --- */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast {
+            background: #064e3b;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 14px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            pointer-events: auto;
+            animation: toastIn 0.3s ease;
+        }
+        .toast-out { animation: toastOut 0.25s ease forwards; }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(16px); } }
+        .toast-undo {
+            background: rgba(255,255,255,0.18);
+            border: none;
+            color: white;
+            padding: 5px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            white-space: nowrap;
+            transition: background 0.15s;
+        }
+        .toast-undo:hover { background: rgba(255,255,255,0.3); }
+    </style>
+</head>
+<body class="bg-[#f1f5f9] text-slate-900 min-h-screen flex flex-col md:flex-row">
+    <!-- Mobile Header -->
+    <header class="md:hidden bg-primary-900 text-white p-4 flex justify-between items-center z-50">
+        <span class="text-2xl font-black">Turnos</span>
+        <button onclick="toggleSidebar()" class="p-2 hover:bg-primary-800 rounded-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+        </button>
+    </header>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-primary-900 text-white flex flex-col transform -translate-x-full md:translate-x-0 md:static md:inset-auto">
+        <div class="p-8 flex items-center space-x-3">
+            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+                <span class="text-primary-900 font-black text-xl">GF</span>
+            </div>
+            <span class="text-2xl font-black tracking-tight">Turnos</span>
+        </div>
+        <nav class="flex-1 px-4 space-y-2 mt-4">
+            <a hx-get="/admin/dashboard" hx-target="#main-view-content" hx-push-url="true" class="nav-item cursor-pointer flex items-center px-4 py-3 rounded-xl transition-all font-semibold hover:bg-primary-800" data-path="/admin/dashboard">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                Dashboard
+            </a>
+            <a hx-get="/admin/calendar" hx-target="#main-view-content" hx-push-url="true" class="nav-item cursor-pointer flex items-center px-4 py-3 rounded-xl transition-all font-semibold hover:bg-primary-800" data-path="/admin/calendar">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Calendario
+            </a>
+            <a hx-get="/admin/bookings" hx-target="#main-view-content" hx-push-url="true" class="nav-item cursor-pointer flex items-center px-4 py-3 rounded-xl transition-all font-semibold hover:bg-primary-800" data-path="/admin/bookings">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                Turnos
+            </a>
+            <a hx-get="/admin/payments" hx-target="#main-view-content" hx-push-url="true" class="nav-item cursor-pointer flex items-center px-4 py-3 rounded-xl transition-all font-semibold hover:bg-primary-800" data-path="/admin/payments">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Pagos
+            </a>
+            <a hx-get="/admin/rooms" hx-target="#main-view-content" hx-push-url="true" class="nav-item cursor-pointer flex items-center px-4 py-3 rounded-xl transition-all font-semibold hover:bg-primary-800" data-path="/admin/rooms">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                Salas
+            </a>
+            <a hx-get="/admin/services" hx-target="#main-view-content" hx-push-url="true" class="nav-item cursor-pointer flex items-center px-4 py-3 rounded-xl transition-all font-semibold hover:bg-primary-800" data-path="/admin/services">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                Servicios
+            </a>
+            <a hx-get="/admin/staff" hx-target="#main-view-content" hx-push-url="true" class="nav-item cursor-pointer flex items-center px-4 py-3 rounded-xl transition-all font-semibold hover:bg-primary-800" data-path="/admin/staff">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                Staff
+            </a>
+            <a hx-get="/admin/customers" hx-target="#main-view-content" hx-push-url="true" class="nav-item cursor-pointer flex items-center px-4 py-3 rounded-xl transition-all font-semibold hover:bg-primary-800" data-path="/admin/customers">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                Clientes
+            </a>
+        </nav>
+        <div class="p-4 border-t border-primary-800">
+            <div class="flex items-center p-2 rounded-xl bg-primary-800 mb-2">
+                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary-900 font-bold">
+                    {{ user.full_name[:2].upper() if user and user.full_name else 'US' }}
+                </div>
+                <div class="ml-3 overflow-hidden">
+                    <p class="text-sm font-semibold truncate">{{ user.full_name if user else 'Usuario' }}</p>
+                    <p class="text-xs text-primary-300">Administrador</p>
+                </div>
+            </div>
+            <a href="/auth/logout" class="flex items-center px-4 py-2 text-sm text-red-300 hover:text-white hover:bg-red-900/30 rounded-lg transition-all font-medium">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                Cerrar Sesión
+            </a>
+        </div>
+    </aside>
+
+    <!-- Overlay for mobile -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" id="main-view">
+        <div id="main-view-content" class="flex-1 overflow-y-auto">
+            {% if content_template %}
+                {% include content_template %}
+            {% else %}
+                {% include "admin/dashboard_content.html" %}
+            {% endif %}
+        </div>
+    </main>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function updateActiveTab() {
+            const path = window.location.pathname;
+            document.querySelectorAll('.nav-item').forEach(link => {
+                link.classList.remove('bg-primary-800', 'text-white');
+                // Check if the path matches or if it's the dashboard
+                const linkPath = link.getAttribute('data-path');
+                if (linkPath === path) {
+                    link.classList.add('bg-primary-800', 'text-white');
+                }
+            });
+        }
+
+        // Initial call
+        document.addEventListener('DOMContentLoaded', updateActiveTab);
+
+        // Update on HTMX navigation
+        document.addEventListener('htmx:afterOnLoad', (evt) => {
+            updateActiveTab();
+            
+            // Close sidebar on mobile
+            if (window.innerWidth < 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (!sidebar.classList.contains('-translate-x-full')) {
+                    toggleSidebar();
+                }
+            }
+
+            initBookingPickers();
+        });
+
+        function openPaymentModal(bookingId, amount, customerName) {
+            fetch('/admin/customers').then(function(r) { return r.text(); }).catch(function() { return ''; });
+            var modal = document.getElementById('payment-modal');
+            if (!modal) return;
+            document.getElementById('pm-booking-id').value = bookingId;
+            document.getElementById('pm-amount').value = amount;
+            modal.classList.remove('hidden');
+        }
+
+        window.closePaymentModal = function() {
+            var modal = document.getElementById('payment-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.openPaymentModal = function(bookingId, amount, customerName, customerId) {
+            var modal = document.getElementById('payment-modal');
+            if (!modal) return;
+            document.getElementById('pm-booking-id').value = bookingId;
+            document.getElementById('pm-amount').value = amount;
+            document.getElementById('pm-customer-id').value = customerId || '';
+            document.getElementById('pm-customer-name').textContent = customerName || 'Cliente';
+            modal.classList.remove('hidden');
+        };
+
+        // --- Custom Date/Time Picker ---
+        (function() {
+            let popup = null;
+            let currentMode = null;
+            let currentInput = null;
+
+            const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            const DAY_HEADERS = ['L','M','M','J','V','S','D'];
+
+            function getPopup() {
+                if (!popup) {
+                    popup = document.createElement('div');
+                    popup.className = 'picker-popup hidden';
+                    popup.innerHTML = '<div class="picker-inner"></div>';
+                    document.body.appendChild(popup);
+                }
+                return popup;
+            }
+
+            function getContainer(el) {
+                return el.closest('.booking-datetime-container');
+            }
+
+            function position(popupEl, inputEl) {
+                const rect = inputEl.getBoundingClientRect();
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                let top = rect.bottom + 4;
+                let left = rect.left;
+                const pw = popupEl.offsetWidth || 288;
+                const ph = popupEl.offsetHeight || 360;
+                if (left + pw > vw - 8) left = vw - pw - 8;
+                if (left < 8) left = 8;
+                if (top + ph > vh - 8) top = rect.top - ph - 4;
+                if (top < 8) top = 8;
+                popupEl.style.top = top + 'px';
+                popupEl.style.left = left + 'px';
+            }
+
+            function closePopup() {
+                var p = getPopup();
+                p.classList.add('hidden');
+                currentMode = null;
+                currentInput = null;
+            }
+
+            function syncHidden(el) {
+                var container = getContainer(el);
+                if (!container) return;
+                var dp = container.querySelector('.booking-datepicker-input');
+                var tp = container.querySelector('.booking-timepicker-input');
+                var hidden = container.querySelector('.booking-datetime-hidden');
+                if (!dp || !tp || !hidden) return;
+                var isoDate = dp.dataset.iso;
+                var hours = tp.dataset.hours;
+                var minutes = tp.dataset.minutes;
+                if (isoDate && hours !== undefined && minutes !== undefined) {
+                    hidden.value = isoDate + 'T' + hours + ':' + minutes;
+                    hidden.dispatchEvent(new Event('input', { bubbles: true }));
+                } else {
+                    hidden.value = '';
+                }
+            }
+
+            function validateAndSetDate(dpInput) {
+                var val = dpInput.value.trim();
+                var container = getContainer(dpInput);
+                var err = container ? container.querySelector('.picker-error-date') : null;
+                if (!val) {
+                    dpInput.dataset.iso = '';
+                    if (err) err.innerHTML = '';
+                    syncHidden(dpInput);
+                    return;
+                }
+                var m = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (!m) {
+                    dpInput.dataset.iso = '';
+                    if (err) err.innerHTML = '¿Quisiste decir DD/MM/AAAA?';
+                    syncHidden(dpInput);
+                    return;
+                }
+                var d = parseInt(m[1]), mo = parseInt(m[2]), y = parseInt(m[3]);
+                if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 2000 || y > 2100) {
+                    dpInput.dataset.iso = '';
+                    if (err) err.innerHTML = 'Fecha inválida';
+                    syncHidden(dpInput);
+                    return;
+                }
+                var test = new Date(y, mo - 1, d);
+                if (test.getFullYear() !== y || test.getMonth() !== mo - 1 || test.getDate() !== d) {
+                    dpInput.dataset.iso = '';
+                    if (err) err.innerHTML = 'Fecha inexistente';
+                    syncHidden(dpInput);
+                    return;
+                }
+                dpInput.dataset.iso = y + '-' + String(mo).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+                if (err) err.innerHTML = '';
+                syncHidden(dpInput);
+            }
+
+            function renderCalendar(dpInput) {
+                const today = new Date();
+                let cm, cy;
+                if (dpInput.dataset.iso) {
+                    const [y, m] = dpInput.dataset.iso.split('-');
+                    cm = parseInt(m) - 1;
+                    cy = parseInt(y);
+                } else {
+                    cm = today.getMonth();
+                    cy = today.getFullYear();
+                }
+
+                const inner = document.createElement('div');
+                function draw() {
+                    const fd = new Date(cy, cm, 1);
+                    const ld = new Date(cy, cm + 1, 0);
+                    const totalDays = ld.getDate();
+                    let sd = fd.getDay() - 1;
+                    if (sd < 0) sd = 6;
+
+                    let h = '';
+                    h += '<div class="flex items-center justify-between mb-3">';
+                    h += '<button type="button" class="dp-nav-btn p-1 rounded-lg w-7 h-7 flex items-center justify-center text-slate-600 font-bold" data-action="prev">&lt;</button>';
+                    h += '<span class="font-bold text-slate-800 text-sm">' + MONTHS[cm] + ' ' + cy + '</span>';
+                    h += '<button type="button" class="dp-nav-btn p-1 rounded-lg w-7 h-7 flex items-center justify-center text-slate-600 font-bold" data-action="next">&gt;</button>';
+                    h += '</div>';
+                    h += '<div class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-slate-400 mb-1">';
+                    DAY_HEADERS.forEach(function(d) { h += '<div>' + d + '</div>'; });
+                    h += '</div>';
+                    h += '<div class="grid grid-cols-7 gap-1 text-center">';
+                    for (let i = 0; i < sd; i++) h += '<div></div>';
+                    for (let d = 1; d <= totalDays; d++) {
+                        const dt = new Date(cy, cm, d);
+                        const iso = cy + '-' + String(cm+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+                        const isToday = dt.toDateString() === today.toDateString();
+                        const selIso = dpInput.dataset.iso;
+                        const isSel = selIso === iso;
+                        let cls = 'dp-day py-1.5 rounded-lg text-sm font-medium cursor-pointer ';
+                        if (isSel) cls += 'dp-selected';
+                        else if (isToday) cls += 'dp-today';
+                        else cls += 'text-slate-700';
+                        h += '<div class="' + cls + '" data-iso="' + iso + '">' + d + '</div>';
+                    }
+                    h += '</div>';
+                    h += '<button type="button" class="dp-today-btn mt-3 w-full py-2 text-xs font-bold text-primary-900 hover:bg-primary-50 rounded-xl transition-colors">Hoy</button>';
+                    inner.innerHTML = h;
+
+                    inner.querySelector('[data-action="prev"]').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); cm--; if (cm < 0) { cm = 11; cy--; } draw(); });
+                    inner.querySelector('[data-action="next"]').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); cm++; if (cm > 11) { cm = 0; cy++; } draw(); });
+                    inner.querySelector('.dp-today-btn').addEventListener('click', function(e) {
+                        e.preventDefault(); e.stopPropagation();
+                        dpInput.value = String(today.getDate()).padStart(2,'0')+'/'+String(today.getMonth()+1).padStart(2,'0')+'/'+today.getFullYear();
+                        validateAndSetDate(dpInput);
+                        cm = today.getMonth(); cy = today.getFullYear(); draw();
+                        closePopup();
+                    });
+                    inner.querySelectorAll('.dp-day').forEach(function(el) {
+                        el.addEventListener('click', function() {
+                            var iso = el.dataset.iso;
+                            var parts = iso.split('-');
+                            dpInput.value = parts[2] + '/' + parts[1] + '/' + parts[0];
+                            validateAndSetDate(dpInput);
+                            closePopup();
+                        });
+                    });
+                }
+                draw();
+                return inner;
+            }
+
+            function renderTimePicker(tpInput) {
+                var hours = parseInt(tpInput.dataset.hours) || 9;
+                var minutes = tpInput.dataset.minutes || '00';
+                var inner = document.createElement('div');
+                inner.innerHTML = '<div class="flex">' +
+                    '<div class="flex-1 border-r border-slate-100">' +
+                        '<div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider p-3 pb-2 text-center">Hora</div>' +
+                        '<div class="tp-scroll overflow-y-auto" style="max-height:210px">' +
+                            Array.from({length:24}, function(_,i) {
+                                var h = String(i).padStart(2,'0');
+                                var sel = i === hours ? ' tp-selected' : '';
+                                return '<div class="tp-hour-item py-2 text-center text-sm font-medium cursor-pointer text-slate-700' + sel + '" data-hour="' + h + '">' + h + '</div>';
+                            }).join('') +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="flex-1">' +
+                        '<div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider p-3 pb-2 text-center">Min</div>' +
+                        '<div class="tp-scroll overflow-y-auto" style="max-height:210px">' +
+                            ['00','15','30','45'].map(function(m) {
+                                var sel = m === minutes ? ' tp-selected' : '';
+                                return '<div class="tp-min-item py-2 text-center text-sm font-medium cursor-pointer text-slate-700' + sel + '" data-min="' + m + '">' + m + '</div>';
+                            }).join('') +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+
+                inner.querySelectorAll('.tp-hour-item').forEach(function(el) {
+                    el.addEventListener('click', function() {
+                        var h = el.dataset.hour;
+                        tpInput.dataset.hours = h;
+                        tpInput.value = h + ':' + (tpInput.dataset.minutes || '00');
+                        syncHidden(tpInput);
+                        inner.querySelectorAll('.tp-hour-item').forEach(function(e) { e.classList.remove('tp-selected'); e.classList.add('text-slate-700'); });
+                        el.classList.add('tp-selected');
+                        el.classList.remove('text-slate-700');
+                    });
+                });
+                inner.querySelectorAll('.tp-min-item').forEach(function(el) {
+                    el.addEventListener('click', function() {
+                        var m = el.dataset.min;
+                        tpInput.dataset.minutes = m;
+                        tpInput.value = (tpInput.dataset.hours || '09') + ':' + m;
+                        syncHidden(tpInput);
+                        inner.querySelectorAll('.tp-min-item').forEach(function(e) { e.classList.remove('tp-selected'); e.classList.add('text-slate-700'); });
+                        el.classList.add('tp-selected');
+                        el.classList.remove('text-slate-700');
+                    });
+                });
+
+                setTimeout(function() {
+                    var selH = inner.querySelector('.tp-hour-item.tp-selected');
+                    var selM = inner.querySelector('.tp-min-item.tp-selected');
+                    if (selH) selH.scrollIntoView({ block: 'center' });
+                    if (selM) selM.scrollIntoView({ block: 'center' });
+                }, 10);
+
+                return inner;
+            }
+
+            function showPopup(input, mode) {
+                var popupEl = getPopup();
+                var inner = popupEl.querySelector('.picker-inner');
+                popupEl.className = 'picker-popup ' + (mode === 'date' ? 'datepicker-popup' : 'timepicker-popup');
+
+                if (mode === 'date') {
+                    inner.innerHTML = '';
+                    inner.appendChild(renderCalendar(input));
+                } else {
+                    inner.innerHTML = '';
+                    inner.appendChild(renderTimePicker(input));
+                }
+
+                popupEl.classList.remove('hidden');
+                position(popupEl, input);
+                currentMode = mode;
+                currentInput = input;
+            }
+
+            document.addEventListener('click', function(e) {
+                var dpInput = e.target.closest('.booking-datepicker-input');
+                var tpInput = e.target.closest('.booking-timepicker-input');
+                var popupEl = getPopup();
+
+                if (!dpInput && !tpInput) {
+                    if (!popupEl.contains(e.target)) closePopup();
+                    return;
+                }
+
+                if (dpInput) {
+                    e.stopPropagation();
+                    if (currentInput === dpInput && currentMode === 'date') { closePopup(); return; }
+                    closePopup();
+                    showPopup(dpInput, 'date');
+                }
+
+                if (tpInput) {
+                    e.stopPropagation();
+                    if (currentInput === tpInput && currentMode === 'time') { closePopup(); return; }
+                    closePopup();
+                    showPopup(tpInput, 'time');
+                }
+            });
+
+            window.addEventListener('resize', function() {
+                if (currentInput && !getPopup().classList.contains('hidden')) {
+                    position(getPopup(), currentInput);
+                }
+            });
+
+            window.addEventListener('scroll', function() {
+                if (currentInput && !getPopup().classList.contains('hidden')) {
+                    position(getPopup(), currentInput);
+                }
+            }, true);
+
+            document.addEventListener('htmx:beforeRequest', function(evt) {
+                closePopup();
+                var form = evt.detail.elt ? evt.detail.elt.closest('form') : evt.detail.target;
+                if (!form) return;
+                var hidden = form.querySelector('.booking-datetime-hidden');
+                if (!hidden) return;
+                if (!hidden.value) {
+                    evt.preventDefault();
+                    var container = hidden.closest('.booking-datetime-container');
+                    if (container) {
+                        var dateErr = container.querySelector('.picker-error-date');
+                        if (dateErr) dateErr.innerHTML = 'Seleccioná una fecha';
+                    }
+                }
+            });
+
+            window.initBookingPickers = function() {
+                document.querySelectorAll('.booking-datepicker-input').forEach(function(input) {
+                    input.removeEventListener('blur', onDateBlur);
+                    input.addEventListener('blur', onDateBlur);
+                });
+            };
+
+            function onDateBlur(e) {
+                validateAndSetDate(e.target);
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                initBookingPickers();
+            });
+
+            document.addEventListener('htmx:afterSettle', function() {
+                initBookingPickers();
+            });
+        })();
+
+        // --- Toast ---
+        (function() {
+            window.showToast = function(message, opts) {
+                opts = opts || {};
+                var duration = opts.duration || 5000;
+                var undo = opts.undo;
+
+                var container = document.querySelector('.toast-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.className = 'toast-container';
+                    document.body.appendChild(container);
+                }
+
+                var toast = document.createElement('div');
+                toast.className = 'toast';
+                var span = document.createElement('span');
+                span.textContent = message;
+                toast.appendChild(span);
+
+                if (undo) {
+                    var btn = document.createElement('button');
+                    btn.className = 'toast-undo';
+                    btn.textContent = 'Deshacer';
+                    btn.addEventListener('click', function() {
+                        undo();
+                        dismiss();
+                    });
+                    toast.appendChild(btn);
+                }
+
+                container.appendChild(toast);
+
+                var timer;
+                function dismiss() {
+                    toast.classList.add('toast-out');
+                    setTimeout(function() {
+                        if (toast.parentNode) toast.remove();
+                        if (container.children.length === 0 && container.parentNode) container.remove();
+                    }, 250);
+                }
+
+                function startTimer() { timer = setTimeout(dismiss, duration); }
+                startTimer();
+
+                toast.addEventListener('mouseenter', function() { clearTimeout(timer); });
+                toast.addEventListener('mouseleave', function() { startTimer(); });
+            };
+
+            var pendingBookingUndo = null;
+
+            document.addEventListener('htmx:beforeRequest', function(evt) {
+                var form = evt.detail.elt ? evt.detail.elt.closest('form') : evt.detail.target;
+                if (!form) return;
+                var oldStart = form.getAttribute('data-old-start');
+                var oldEnd = form.getAttribute('data-old-end');
+                var bookingId = form.getAttribute('data-booking-id');
+                if (oldStart && oldEnd && bookingId) {
+                    pendingBookingUndo = { bookingId: bookingId, start: oldStart, end: oldEnd };
+                }
+            });
+
+            document.addEventListener('htmx:afterRequest', function(evt) {
+                if (evt.detail.successful && pendingBookingUndo) {
+                    var data = pendingBookingUndo;
+                    window.showToast('Turno actualizado', {
+                        undo: function() {
+                            fetch('/admin/api/calendar/events/' + data.bookingId, {
+                                method: 'PUT',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({ start: data.start, end: data.end })
+                            }).then(function(r) {
+                                if (r.ok) {
+                                    window.showToast('Cambio deshecho');
+                                    var cal = window.calendar;
+                                    if (cal) cal.refetchEvents();
+                                    if (window.location.pathname.indexOf('/admin/bookings') !== -1) {
+                                        htmx.ajax('GET', window.location.pathname + window.location.search, { target: '#main-view-content' });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    pendingBookingUndo = null;
+                }
+            });
+
+            document.addEventListener('htmx:responseError', function(evt) {
+                var xhr = evt.detail.xhr;
+                if (!xhr) return;
+                try {
+                    var body = JSON.parse(xhr.responseText);
+                    var msg = body.detail || 'Error del servidor';
+                    {
+                        window.showToast(msg, {duration: 5000});
+                    }
+                } catch(e) {}
+            });
+        })();
+    </script>
+</body>
+</html>

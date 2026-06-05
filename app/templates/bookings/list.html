@@ -1,0 +1,245 @@
+<header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
+    <h1 class="text-xl font-extrabold text-slate-800">Gestión de Turnos</h1>
+    <button onclick="document.getElementById('booking-modal').classList.remove('hidden')" 
+            class="bg-primary-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-primary-800 transition-all shadow-lg shadow-primary-900/20">
+        Nuevo Turno
+    </button>
+</header>
+
+<section class="p-4 md:p-8">
+    <!-- Filters -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-6">
+        <form hx-get="/admin/bookings" hx-target="#main-view-content" hx-trigger="change" class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha</label>
+                <input type="date" name="date" value="{{ filters.date if filters else '' }}" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-900 outline-none text-sm font-medium">
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Servicio</label>
+                <select name="service_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-900 outline-none text-sm font-medium">
+                    <option value="">Todos los servicios</option>
+                    {% for service in services %}
+                    <option value="{{ service.id }}" {% if filters and filters.service_id == service.id|string %}selected{% endif %}>{{ service.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sala</label>
+                <select name="room_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-900 outline-none text-sm font-medium">
+                    <option value="">Todas las salas</option>
+                    {% for room in rooms %}
+                    <option value="{{ room.id }}" {% if filters and filters.room_id == room.id|string %}selected{% endif %}>{{ room.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Profesional</label>
+                <select name="staff_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-900 outline-none text-sm font-medium">
+                    <option value="">Todo el staff</option>
+                    {% for member in staff %}
+                    <option value="{{ member.id }}" {% if filters and filters.staff_id == member.id|string %}selected{% endif %}>{{ member.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-end">
+                <a href="/admin/bookings" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all text-sm h-[38px] flex items-center">Limpiar</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 border-b border-slate-100">
+                    <tr class="text-slate-500 text-xs font-bold uppercase tracking-wider">
+                        <th class="px-6 py-4">Cliente</th>
+                        <th class="px-6 py-4">Servicio</th>
+                        <th class="px-6 py-4">Sala</th>
+                        <th class="px-6 py-4">Profesional</th>
+                        <th class="px-6 py-4">Fecha y Hora</th>
+                        <th class="px-6 py-4">Estado</th>
+                        <th class="px-6 py-4 text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="bookings-table-body" class="divide-y divide-slate-100">
+                    {% include "bookings/table_rows.html" %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Modal para nuevo turno -->
+<div id="booking-modal" class="hidden fixed inset-0 bg-primary-900/40 backdrop-blur-sm flex items-start justify-center z-[60] p-4 overflow-y-auto">
+    <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl transform transition-all my-8 max-h-none">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-black text-primary-900">Agendar Turno</h3>
+            <button onclick="document.getElementById('booking-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form hx-post="/admin/bookings" hx-target="#bookings-table-body" hx-on::after-request="
+            var errDiv = document.querySelector('#booking-modal .booking-error');
+            if (event.detail.successful) {
+                document.getElementById('booking-modal').classList.add('hidden');
+            } else {
+                try {
+                    var err = JSON.parse(event.detail.xhr.responseText);
+                    errDiv.textContent = err.detail || 'Error al crear el turno';
+                } catch(e) {
+                    errDiv.textContent = 'Error al crear el turno';
+                }
+                errDiv.classList.remove('hidden');
+            }
+        ">
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Cliente</label>
+                    <select name="customer_id" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}">{{ customer.full_name }} ({{ customer.phone_number }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Servicio</label>
+                    <select name="service_id" required onchange="filterRooms(this.value, this.closest('form')); fetchSlots(this.closest('form'))" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                        {% for service in services %}
+                        <option value="{{ service.id }}">{{ service.name }} - ${{ service.price }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Sala</label>
+                    <select name="room_id" required onchange="fetchSlots(this.closest('form'))" class="booking-room-select w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                        {% for room in rooms %}
+                        <option value="{{ room.id }}">{{ room.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Profesional (Opcional)</label>
+                    <select name="staff_id" onchange="fetchSlots(this.closest('form'))" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                        <option value="">Sin asignar</option>
+                        {% for member in staff %}
+                        <option value="{{ member.id }}">{{ member.name }} ({{ member.specialty or 'General' }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Fecha</label>
+                    <input type="date" name="booking_date" onchange="fetchSlots(this.closest('form'))" class="booking-date-input w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium" value="{{ today }}">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Horario</label>
+                    <div class="booking-slots-container grid grid-cols-3 gap-2 min-h-[60px]">
+                        <p class="col-span-3 text-sm text-slate-400 italic py-3 text-center">Seleccioná servicio, sala y fecha para ver horarios.</p>
+                    </div>
+                    <input type="hidden" name="start_time" class="booking-datetime-hidden">
+                </div>
+            </div>
+            <div class="booking-error hidden mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 font-medium"></div>
+            <div class="mt-8 flex space-x-3">
+                <button type="button" onclick="document.getElementById('booking-modal').classList.add('hidden')" class="flex-1 px-4 py-4 border border-slate-200 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Cancelar</button>
+                <button type="submit" class="flex-1 px-4 py-4 bg-primary-900 text-white rounded-2xl font-bold hover:bg-primary-800 shadow-lg shadow-primary-900/20 transition-all">Confirmar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% include "payments/modal.html" %}
+
+<script>
+var serviceRoomsMap = {
+    {% for service in services %}
+    "{{ service.id }}": [{% for room in service.rooms %}"{{ room.id }}"{% if not loop.last %},{% endif %}{% endfor %}],
+    {% endfor %}
+};
+
+function filterRooms(serviceId, form) {
+    var sel = form.querySelector('.booking-room-select');
+    if (!sel) return;
+    var allowed = serviceRoomsMap[serviceId] || [];
+    var options = sel.querySelectorAll('option');
+    var found = false;
+    options.forEach(function(opt) {
+        if (allowed.length === 0 || allowed.indexOf(opt.value) >= 0) {
+            opt.style.display = '';
+            if (!found) { sel.value = opt.value; found = true; }
+        } else {
+            opt.style.display = 'none';
+        }
+    });
+    if (!found) { sel.selectedIndex = -1; }
+    // Show message in slots container if no rooms assigned
+    if (allowed.length === 0) {
+        var container = form.querySelector('.booking-slots-container');
+        if (container) {
+            container.innerHTML = '<p class="col-span-3 text-sm text-amber-600 italic py-3 text-center">Este servicio no tiene salas asignadas. Asigná una sala desde Gestión de Servicios.</p>';
+        }
+    }
+}
+
+function fetchSlots(form) {
+    var serviceId = form.querySelector('select[name="service_id"]').value;
+    var roomId = form.querySelector('select[name="room_id"]').value;
+    var staffId = form.querySelector('select[name="staff_id"]').value;
+    var dateVal = form.querySelector('input[name="booking_date"]').value;
+    var container = form.querySelector('.booking-slots-container');
+    var hidden = form.querySelector('.booking-datetime-hidden');
+
+    if (!serviceId || !roomId || !dateVal) {
+        container.innerHTML = '<p class="col-span-3 text-sm text-slate-400 italic py-3 text-center">Seleccioná servicio, sala y fecha para ver horarios.</p>';
+        hidden.value = '';
+        return;
+    }
+
+    container.innerHTML = '<p class="col-span-3 text-sm text-slate-400 italic py-3 text-center">Cargando horarios...</p>';
+    var url = '/admin/available-slots?date=' + dateVal + '&service_id=' + serviceId + '&room_id=' + roomId;
+    if (staffId) url += '&staff_id=' + staffId;
+
+    fetch(url)
+        .then(function(r) { 
+            if (!r.ok) {
+                return r.json().then(function(err) {
+                    throw new Error(err.detail || 'Error al cargar horarios');
+                });
+            }
+            return r.json(); 
+        })
+        .then(function(slots) {
+            if (!slots || slots.length === 0) {
+                container.innerHTML = '<p class="col-span-3 text-sm text-red-400 italic py-3 text-center">No hay horarios disponibles para esta fecha.</p>';
+                hidden.value = '';
+                return;
+            }
+            hidden.value = '';
+            var html = '';
+            slots.forEach(function(s) {
+                html += '<button type="button" class="slot-btn px-3 py-2 bg-slate-100 hover:bg-primary-900 hover:text-white text-slate-700 font-bold rounded-xl text-sm transition-all" data-iso="' + s.iso + '" onclick="selectSlot(this)">' + s.time + '</button>';
+            });
+            container.innerHTML = html;
+        })
+        .catch(function(err) {
+            container.innerHTML = '<p class="col-span-3 text-sm text-red-400 italic py-3 text-center">' + (err.message || 'Error al cargar horarios.') + '</p>';
+            hidden.value = '';
+        });
+}
+
+function selectSlot(btn) {
+    var form = btn.closest('form');
+    var hidden = form.querySelector('.booking-datetime-hidden');
+    hidden.value = btn.getAttribute('data-iso');
+    form.querySelectorAll('.slot-btn').forEach(function(b) { b.classList.remove('bg-primary-900', 'text-white'); b.classList.add('bg-slate-100', 'text-slate-700'); });
+    btn.classList.remove('bg-slate-100', 'text-slate-700');
+    btn.classList.add('bg-primary-900', 'text-white');
+}
+
+document.querySelectorAll('form .booking-room-select').forEach(function(sel) {
+    var form = sel.closest('form');
+    var serviceSel = form.querySelector('select[name="service_id"]');
+    if (serviceSel && serviceSel.value) {
+        filterRooms(serviceSel.value, form);
+    }
+});
+</script>

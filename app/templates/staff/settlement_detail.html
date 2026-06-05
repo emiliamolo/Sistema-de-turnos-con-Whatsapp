@@ -1,0 +1,69 @@
+<div id="settlement-detail-modal" class="fixed inset-0 bg-primary-900/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4 overflow-y-auto">
+    <div class="bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl my-8">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-black text-primary-900">Detalle de Liquidación</h3>
+            <button onclick="document.getElementById('settlement-detail-modal').remove()" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <div class="bg-slate-50 rounded-2xl p-4 mb-6 space-y-2">
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500">Profesional:</span>
+                <span class="font-bold text-slate-700">{{ staff_member.name }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500">Período:</span>
+                <span class="font-bold text-slate-700">{{ settlement.period_start.strftime('%d/%m/%Y') }} — {{ settlement.period_end.strftime('%d/%m/%Y') }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500">Turnos:</span>
+                <span class="font-bold text-slate-700">{{ settlement.total_services }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500">Total Servicios:</span>
+                <span class="font-bold text-slate-700">${{ "{:,.2f}".format(settlement.total_amount) }}</span>
+            </div>
+            <div class="flex justify-between text-sm pt-2 border-t border-slate-200">
+                <span class="text-slate-500">Comisión:</span>
+                <span class="font-bold text-primary-900 text-lg">${{ "{:,.2f}".format(settlement.total_commission) }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500">Estado:</span>
+                <span class="font-bold {% if settlement.status == 'paid' %}text-emerald-600{% else %}text-amber-600{% endif %}">
+                    {{ 'Pagado' if settlement.status == 'paid' else 'Pendiente' }}
+                </span>
+            </div>
+        </div>
+
+        <h4 class="font-bold text-slate-800 mb-3">Desglose por Turno</h4>
+        <div class="space-y-2 max-h-80 overflow-y-auto">
+            {% for item in settlement.items %}
+            <div class="bg-white border border-slate-100 rounded-xl p-3 flex justify-between items-center">
+                <div>
+                    <div class="text-sm font-medium text-slate-700">{{ item.service_name }}</div>
+                    <div class="text-xs text-slate-500">{{ item.booking_date.strftime('%d/%m/%Y') if item.booking_date else '-' }}</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm font-medium text-slate-700">${{ "{:,.2f}".format(item.service_price) }}</div>
+                    <div class="text-xs font-bold text-primary-900">+ ${{ "{:,.2f}".format(item.commission_amount) }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-6 flex space-x-3">
+            {% if settlement.status != 'paid' %}
+            <button hx-post="/staff/{{ staff_member.id }}/settlements/{{ settlement.id }}/mark-paid"
+                    hx-swap="none"
+                    class="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 shadow-lg">
+                Marcar como Pagado
+            </button>
+            {% endif %}
+            <button onclick="document.getElementById('settlement-detail-modal').remove()"
+                    class="flex-1 py-4 border border-slate-200 rounded-2xl font-bold text-slate-500 hover:bg-slate-50">
+                Cerrar
+            </button>
+        </div>
+    </div>
+</div>

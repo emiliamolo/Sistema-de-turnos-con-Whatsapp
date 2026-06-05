@@ -1,0 +1,36 @@
+{% for room in rooms %}
+<tr>
+    <td class="px-6 py-4">
+        <div class="font-semibold text-slate-800">{{ room.name }}</div>
+    </td>
+    <td class="px-6 py-4 text-slate-500 text-sm">
+        {{ room.description or 'Sin descripción' }}
+    </td>
+    <td class="px-6 py-4">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-900 uppercase">
+            {{ room.capacity }} personas
+        </span>
+    </td>
+    <td class="px-6 py-4 text-right flex justify-end space-x-2">
+        <button hx-get="/admin/rooms/{{ room.id }}/edit" 
+                hx-target="body" 
+                hx-swap="beforeend"
+                class="text-slate-400 hover:text-primary-900 transition-colors p-2 hover:bg-primary-50 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+        </button>
+        <button hx-delete="/admin/rooms/{{ room.id }}" 
+                hx-target="#rooms-table-body" 
+                hx-swap="innerHTML"
+                hx-confirm="¿Estás seguro de borrar esta sala?"
+                class="text-slate-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        </button>
+    </td>
+</tr>
+{% else %}
+<tr>
+    <td colspan="4" class="px-6 py-12 text-center text-slate-400 italic">
+        No hay salas creadas aún.
+    </td>
+</tr>
+{% endfor %}

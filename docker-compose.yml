@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: turnos_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password_123}
+      POSTGRES_DB: ${POSTGRES_DB:-turnos_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user_admin} -d ${POSTGRES_DB:-turnos_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - turnos_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: turnos_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - turnos_network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: turnos_api
+    restart: always
+    # Cargamos el archivo .env automáticamente
+    env_file:
+      - .env
+    environment:
+      TZ: America/Argentina/Buenos_Aires
+      # Sobrescribimos las URLs para que apunten internamente a la red de Docker (db y redis)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-user_admin}:${POSTGRES_PASSWORD:-password_123}@db:5432/${POSTGRES_DB:-turnos_db}?options=-c%20timezone=America/Argentina/Buenos_Aires
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - turnos_network
+    volumes:
+      - .:/src
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: turnos_worker
+    restart: always
+    command: python -m app.worker.main
+    env_file:
+      - .env
+    environment:
+      TZ: America/Argentina/Buenos_Aires
+      DATABASE_URL: postgresql://${POSTGRES_USER:-user_admin}:${POSTGRES_PASSWORD:-password_123}@db:5432/${POSTGRES_DB:-turnos_db}?options=-c%20timezone=America/Argentina/Buenos_Aires
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    networks:
+      - turnos_network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: turnos_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    networks:
+      - turnos_network
+
+networks:
+  turnos_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

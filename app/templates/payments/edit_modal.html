@@ -1,0 +1,42 @@
+<div id="payment-edit-modal" class="fixed inset-0 bg-primary-900/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+    <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-black text-primary-900">Editar Pago</h3>
+            <button onclick="document.getElementById('payment-edit-modal').remove()" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form hx-post="/admin/payments/{{ payment.id }}" hx-target="#payments-table-body" hx-swap="innerHTML" hx-on::after-request="document.getElementById('payment-edit-modal').remove()">
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Monto</label>
+                    <input type="number" name="amount" value="{{ payment.amount }}" step="0.01" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Método</label>
+                    <select name="payment_method" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                        <option value="cash" {% if payment.payment_method == 'cash' %}selected{% endif %}>Efectivo</option>
+                        <option value="transfer" {% if payment.payment_method == 'transfer' %}selected{% endif %}>Transferencia</option>
+                        <option value="card" {% if payment.payment_method == 'card' %}selected{% endif %}>Tarjeta</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Estado</label>
+                    <select name="status" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                        <option value="paid" {% if payment.status == 'paid' %}selected{% endif %}>Pagado</option>
+                        <option value="partial" {% if payment.status == 'partial' %}selected{% endif %}>Parcial</option>
+                        <option value="pending" {% if payment.status == 'pending' %}selected{% endif %}>Pendiente</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-primary-900 uppercase tracking-widest mb-2 ml-1">Notas</label>
+                    <input type="text" name="notes" value="{{ payment.notes or '' }}" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-900 outline-none font-medium">
+                </div>
+            </div>
+            <div class="mt-8 flex space-x-3">
+                <button type="button" onclick="document.getElementById('payment-edit-modal').remove()" class="flex-1 px-4 py-4 border border-slate-200 rounded-2xl font-bold text-slate-500 hover:bg-slate-50">Cancelar</button>
+                <button type="submit" class="flex-1 px-4 py-4 bg-primary-900 text-white rounded-2xl font-bold hover:bg-primary-800 shadow-lg">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>

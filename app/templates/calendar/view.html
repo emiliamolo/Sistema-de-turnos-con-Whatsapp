@@ -1,0 +1,341 @@
+<div class="bg-white rounded-3xl p-4 md:p-8 shadow-sm border border-slate-100 mb-6">
+    <!-- Filters -->
+    <div class="flex flex-wrap gap-4">
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Servicio</label>
+            <select id="filter-service" onchange="window.calendar.refetchEvents()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-900 outline-none text-sm font-medium">
+                <option value="">Todos los servicios</option>
+                {% for service in services %}
+                <option value="{{ service.id }}">{{ service.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Sala</label>
+            <select id="filter-room" onchange="window.calendar.refetchEvents()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-900 outline-none text-sm font-medium">
+                <option value="">Todas las salas</option>
+                {% for room in rooms %}
+                <option value="{{ room.id }}">{{ room.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Profesional</label>
+            <select id="filter-staff" onchange="window.calendar.refetchEvents()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-900 outline-none text-sm font-medium">
+                <option value="">Todo el staff</option>
+                {% for member in staff %}
+                <option value="{{ member.id }}">{{ member.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-slate-100">
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 space-y-3 md:space-y-0">
+        <div>
+            <h2 class="text-xl font-black text-slate-800">Calendario de Turnos</h2>
+            <p class="text-slate-500 font-medium text-sm">Gestiona tu agenda visualmente</p>
+        </div>
+        <div class="flex bg-slate-100 p-0.5 rounded-xl" id="calendar-view-buttons">
+            <button id="btn-month" onclick="changeCalendarView('dayGridMonth', this)"
+                class="view-btn px-3 py-1.5 hover:bg-white hover:shadow-sm rounded-lg text-xs font-bold transition-all">Mes</button>
+            <button id="btn-week" onclick="changeCalendarView('timeGridWeek', this)"
+                class="view-btn px-3 py-1.5 hover:bg-white hover:shadow-sm rounded-lg text-xs font-bold transition-all">Semana</button>
+            <button id="btn-day" onclick="changeCalendarView('timeGridDay', this)"
+                class="view-btn px-3 py-1.5 hover:bg-white hover:shadow-sm rounded-lg text-xs font-bold transition-all">Día</button>
+        </div>
+    </div>
+
+    <!-- Calendar Container -->
+    <div id="calendar" class="min-h-[450px] w-full"></div>
+</div>
+
+<!-- Calendar Confirmation Modal -->
+<div id="calendar-confirm-modal" class="hidden fixed inset-0 bg-primary-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4">
+    <div class="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+        <h3 class="text-2xl font-black text-primary-900 mb-2">Confirmar cambio</h3>
+        <p id="calendar-confirm-title" class="text-slate-600 font-medium mb-4"></p>
+        <div class="bg-slate-50 rounded-2xl p-4 mb-4 space-y-2">
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500">Anterior:</span>
+                <span id="calendar-confirm-old" class="font-bold text-slate-700"></span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500">Nuevo:</span>
+                <span id="calendar-confirm-new" class="font-bold text-primary-900"></span>
+            </div>
+        </div>
+        <div class="mb-6">
+            <label class="flex items-center cursor-pointer">
+                <input type="checkbox" id="calendar-confirm-notify" checked class="w-5 h-5 text-primary-900 rounded focus:ring-primary-900 border-slate-300">
+                <span class="ml-2 text-sm font-medium text-slate-700">¿Avisar al cliente del cambio?</span>
+            </label>
+        </div>
+        <div class="flex space-x-3">
+            <button id="calendar-confirm-cancel" class="flex-1 px-4 py-4 border border-slate-200 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Cancelar</button>
+            <button id="calendar-confirm-ok" class="flex-1 px-4 py-4 bg-primary-900 text-white rounded-2xl font-bold hover:bg-primary-800 shadow-lg shadow-primary-900/20 transition-all">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<!-- FullCalendar dependencies loaded in dashboard.html -->
+<script>
+    function changeCalendarView(viewName, btn) {
+        if (window.calendar) {
+            window.calendar.changeView(viewName);
+            
+            const buttons = document.querySelectorAll('.view-btn');
+            buttons.forEach(b => {
+                b.classList.remove('bg-white', 'shadow-sm');
+                b.classList.add('hover:bg-white', 'hover:shadow-sm');
+            });
+            
+            btn.classList.add('bg-white', 'shadow-sm');
+            btn.classList.remove('hover:bg-white', 'hover:shadow-sm');
+        }
+    }
+
+    function formatDate(d) {
+        var dd = String(d.getDate()).padStart(2, '0');
+        var mm = String(d.getMonth() + 1).padStart(2, '0');
+        var hh = String(d.getHours()).padStart(2, '0');
+        var min = String(d.getMinutes()).padStart(2, '0');
+        return dd + '/' + mm + '/' + d.getFullYear() + ' ' + hh + ':' + min;
+    }
+
+    function showCalendarConfirm(opts) {
+        var modal = document.getElementById('calendar-confirm-modal');
+        var titleEl = document.getElementById('calendar-confirm-title');
+        var oldEl = document.getElementById('calendar-confirm-old');
+        var newEl = document.getElementById('calendar-confirm-new');
+        var notifyCb = document.getElementById('calendar-confirm-notify');
+        var btnOk = document.getElementById('calendar-confirm-ok');
+        var btnCancel = document.getElementById('calendar-confirm-cancel');
+
+        titleEl.textContent = opts.title;
+        oldEl.textContent = formatDate(opts.oldStart) + ' - ' + formatDate(opts.oldEnd);
+        newEl.textContent = formatDate(opts.newStart) + ' - ' + formatDate(opts.newEnd);
+        notifyCb.checked = true;
+        modal.classList.remove('hidden');
+
+        var onKey = function(e) { if (e.key === 'Escape') { cleanup(); opts.onCancel(); } };
+
+        function cleanup() {
+            modal.classList.add('hidden');
+            document.removeEventListener('keydown', onKey);
+            modal.onclick = null;
+        }
+
+        function close() { cleanup(); opts.onConfirm(notifyCb.checked); }
+
+        btnOk.onclick = close;
+        btnCancel.onclick = function() { cleanup(); opts.onCancel(); };
+        modal.onclick = function(e) { if (e.target === modal) { cleanup(); opts.onCancel(); } };
+        document.addEventListener('keydown', onKey);
+    }
+
+    function updateCalendarEvent(id, start, end, notify, cb) {
+        var body = { start: start, end: end };
+        if (notify) body.notify = true;
+        fetch('/admin/api/calendar/events/' + id, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        })
+        .then(function(res) {
+            if (!res.ok) return res.json().then(function(data) { throw new Error(data.detail || 'Error al actualizar'); });
+            return res.json();
+        })
+        .then(function() { cb(null); })
+        .catch(function(err) { cb(err); });
+    }
+
+    function initCalendar() {
+        if (typeof FullCalendar === 'undefined') {
+            setTimeout(initCalendar, 50);
+            return;
+        }
+        var calendarEl = document.getElementById('calendar');
+        if (!calendarEl) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let defaultView = 'timeGridWeek';
+        let activeBtnId = 'btn-week';
+        if (urlParams.get('view') === 'day') {
+            defaultView = 'timeGridDay';
+            activeBtnId = 'btn-day';
+        }
+
+        window.calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: defaultView,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: ''
+        },
+        locale: 'es',
+        firstDay: 1,
+        slotMinTime: '09:00:00',
+        slotMaxTime: '20:00:00',
+        allDaySlot: false,
+        height: 400,
+        expandRows: true,
+        events: {
+            url: '/admin/api/calendar/events',
+            extraParams: function() {
+                return {
+                    service_id: document.getElementById('filter-service') ? document.getElementById('filter-service').value : '',
+                    room_id: document.getElementById('filter-room') ? document.getElementById('filter-room').value : '',
+                    staff_id: document.getElementById('filter-staff') ? document.getElementById('filter-staff').value : ''
+                };
+            }
+        },
+        },
+        eventClick: function (info) {
+            alert('Turno: ' + info.event.title);
+        },
+        eventDidMount: function (info) {
+            info.el.style.border = 'none';
+            info.el.style.padding = '1px 3px';
+            info.el.style.margin = '0 1px';
+        },
+        eventDrop: function (info) {
+            var event = info.event;
+            showCalendarConfirm({
+                title: event.title,
+                oldStart: info.oldEvent.start,
+                oldEnd: info.oldEvent.end,
+                newStart: event.start,
+                newEnd: event.end,
+                onConfirm: function(notify) {
+                    updateCalendarEvent(event.id, event.start.toISOString(), event.end.toISOString(), notify, function(err) {
+                        if (err) { alert('No se pudo mover el turno: ' + err.message); info.revert(); }
+                        else window.calendar.refetchEvents();
+                    });
+                },
+                onCancel: function() {
+                    info.revert();
+                }
+            });
+        },
+        eventResize: function (info) {
+            var event = info.event;
+            showCalendarConfirm({
+                title: event.title,
+                oldStart: info.oldEvent.start,
+                oldEnd: info.oldEvent.end,
+                newStart: event.start,
+                newEnd: event.end,
+                onConfirm: function(notify) {
+                    updateCalendarEvent(event.id, event.start.toISOString(), event.end.toISOString(), notify, function(err) {
+                        if (err) { alert('No se pudo redimensionar el turno: ' + err.message); info.revert(); }
+                        else window.calendar.refetchEvents();
+                    });
+                },
+                onCancel: function() {
+                    info.revert();
+                }
+            });
+        },
+        editable: true,
+        themeSystem: 'standard'
+    });
+
+    // Ensure it renders correctly after HTMX swap
+    setTimeout(() => {
+        window.calendar.render();
+        window.calendar.updateSize();
+        
+        const activeBtn = document.getElementById(activeBtnId);
+        if (activeBtn) {
+            activeBtn.classList.add('bg-white', 'shadow-sm');
+            activeBtn.classList.remove('hover:bg-white', 'hover:shadow-sm');
+        }
+    }, 10);
+    }
+    
+    // Initialize immediately (will wait if script not loaded yet)
+    initCalendar();
+
+    document.addEventListener('htmx:beforeSwap', function() {
+        var modal = document.getElementById('calendar-confirm-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+            modal.classList.add('hidden');
+        }
+    });
+</script>
+
+<style>
+    :root {
+        --primary-color: #064e3b;
+    }
+
+    .fc {
+        font-family: 'Mulish', sans-serif;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #1e293b;
+    }
+
+    .fc .fc-toolbar {
+        margin-bottom: 0.75rem !important;
+    }
+
+    .fc .fc-button-primary {
+        background-color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    .fc .fc-button-primary:hover {
+        opacity: 0.9;
+    }
+
+    .fc-theme-standard td,
+    .fc-theme-standard th {
+        border-color: #f1f5f9;
+    }
+
+    .fc .fc-timegrid-slot {
+        height: 1.6rem !important;
+    }
+
+    .fc .fc-timegrid-slot-minor {
+        height: 1.6rem !important;
+    }
+
+    .fc .fc-timegrid-col-events {
+        margin: 0 !important;
+    }
+
+    .fc .fc-timegrid-now-indicator-line {
+        border-color: #ef4444;
+    }
+
+    .fc-event {
+        border-radius: 6px !important;
+        box-shadow: 0 2px 4px -1px rgb(0 0 0 / 0.1);
+        padding: 2px 4px !important;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+
+    .fc-event.fc-v-event {
+        border: none !important;
+    }
+
+    .fc-v-event .fc-event-main {
+        color: white;
+    }
+
+    .fc-timegrid-col-events {
+        margin: 0 2px !important;
+    }
+</style>

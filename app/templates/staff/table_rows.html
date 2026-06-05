@@ -1,0 +1,37 @@
+{% for member in staff %}
+<tr class="hover:bg-slate-50 transition-colors group">
+    <td class="px-6 py-4">
+        <div class="flex items-center">
+            <div class="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-900 font-bold mr-3">
+                {{ member.name[:2].upper() }}
+            </div>
+            <div>
+                <p class="font-bold text-slate-800">{{ member.name }}</p>
+            </div>
+        </div>
+    </td>
+    <td class="px-6 py-4">
+        <span class="text-sm text-slate-600 font-medium">{{ member.specialty or '-' }}</span>
+    </td>
+    <td class="px-6 py-4">
+        <span class="text-xs text-slate-500 font-medium">{{ member.user.email if member.user else 'Sin acceso' }}</span>
+    </td>
+    <td class="px-6 py-4">
+        {% if member.active %}
+        <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">Activo</span>
+        {% else %}
+        <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-bold">Inactivo</span>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 text-right">
+        <button hx-get="/admin/staff/{{ member.id }}/history" hx-target="#main-view-content" hx-push-url="true" class="text-emerald-600 hover:text-emerald-900 font-bold text-sm mr-3">Historial</button>
+        <button hx-get="/admin/staff/{{ member.id }}/settlements" hx-target="#main-view-content" hx-push-url="true" class="text-primary-600 hover:text-primary-900 font-bold text-sm mr-3">Liquidaciones</button>
+        <button hx-get="/admin/staff/{{ member.id }}/edit" hx-target="#edit-modal-container" hx-swap="innerHTML" class="text-primary-600 hover:text-primary-900 font-bold text-sm mr-3">Editar</button>
+        <button hx-delete="/admin/staff/{{ member.id }}" hx-target="#staff-table-body" hx-confirm="¿Estás seguro de eliminar este miembro del staff?" class="text-red-500 hover:text-red-700 font-bold text-sm">Eliminar</button>
+    </td>
+</tr>
+{% else %}
+<tr>
+    <td colspan="5" class="px-6 py-8 text-center text-slate-500 font-medium">No hay profesionales registrados.</td>
+</tr>
+{% endfor %}
