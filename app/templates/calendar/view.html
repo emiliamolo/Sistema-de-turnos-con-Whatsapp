@@ -169,7 +169,7 @@
 
         window.calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: defaultView,
-        headerToolbar: {
+            headerToolbar: {
             left: 'prev,next today',
             center: 'title',
             right: ''
@@ -190,7 +190,6 @@
                     staff_id: document.getElementById('filter-staff') ? document.getElementById('filter-staff').value : ''
                 };
             }
-        },
         },
         eventClick: function (info) {
             alert('Turno: ' + info.event.title);
