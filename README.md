@@ -1,5 +1,9 @@
 # Sistema de Turnos con WhatsApp
 
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://python.org)
+[![Docker](https://img.shields.io/badge/Docker-✔-2496ED?logo=docker&logoColor=white)](https://docker.com)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](./LICENSE)
+
 Sistema web para gestionar turnos, clientes y profesionales, con reserva de turnos automatizada vía WhatsApp usando inteligencia artificial.
 
 ## Características
