@@ -98,6 +98,7 @@ Todas las secciones requieren login menos el webhook. El flujo normal es:
 
 | Sección | URL | Requiere login |
 |---|---|---|
+| Swagger UI | [`/docs`](http://localhost:8000/docs) | No |
 | Login | `/auth/login` | No |
 | Panel de administración | `/admin/dashboard` | Sí |
 | Panel de profesionales | `/professional/login` | No (es la página de login del profesional) |
